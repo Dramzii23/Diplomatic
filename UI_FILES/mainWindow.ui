@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>965</width>
+    <width>1023</width>
     <height>542</height>
    </rect>
   </property>
@@ -19,22 +19,6 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QDialogButtonBox" name="buttonBox">
-   <property name="geometry">
-    <rect>
-     <x>700</x>
-     <y>470</y>
-     <width>251</width>
-     <height>61</height>
-    </rect>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Vertical</enum>
-   </property>
-   <property name="standardButtons">
-    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-   </property>
-  </widget>
   <widget class="QLabel" name="imageLabel">
    <property name="geometry">
     <rect>
@@ -105,100 +89,99 @@
     <set>Qt::AlignBottom|Qt::AlignHCenter</set>
    </property>
   </widget>
-  <widget class="QSplitter" name="splitter">
+  <widget class="QPushButton" name="exportMultiPDF">
    <property name="geometry">
     <rect>
-     <x>700</x>
-     <y>10</y>
-     <width>251</width>
-     <height>24</height>
-    </rect>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Vertical</enum>
-   </property>
-   <widget class="QPushButton" name="uploadImage">
-    <property name="text">
-     <string>Cambiar Imagen de fondo</string>
-    </property>
-   </widget>
-  </widget>
-  <widget class="QPushButton" name="exportPDF">
-   <property name="geometry">
-    <rect>
-     <x>700</x>
-     <y>40</y>
-     <width>251</width>
-     <height>24</height>
+     <x>857</x>
+     <y>39</y>
+     <width>154</width>
+     <height>73</height>
     </rect>
    </property>
    <property name="text">
-    <string>Exportar PDF</string>
+    <string>Exportar todos (PDF)</string>
    </property>
+   <attribute name="buttonGroup">
+    <string notr="true">buttonGroup</string>
+   </attribute>
   </widget>
   <widget class="QPushButton" name="subirExcelButton">
    <property name="geometry">
     <rect>
      <x>700</x>
-     <y>80</y>
-     <width>251</width>
-     <height>24</height>
+     <y>115</y>
+     <width>311</width>
+     <height>30</height>
     </rect>
    </property>
    <property name="text">
     <string>Subir Excel</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="subirExcelButton_2">
+   <property name="geometry">
+    <rect>
+     <x>910</x>
+     <y>500</y>
+     <width>101</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Salir</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="exportPDF">
+   <property name="geometry">
+    <rect>
+     <x>699</x>
+     <y>39</y>
+     <width>154</width>
+     <height>73</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Exportar uno (PDF)</string>
+   </property>
+   <attribute name="buttonGroup">
+    <string notr="true">buttonGroup</string>
+   </attribute>
+  </widget>
   <widget class="QTableView" name="tableViewExcel">
    <property name="geometry">
     <rect>
      <x>700</x>
-     <y>110</y>
-     <width>251</width>
-     <height>351</height>
+     <y>150</y>
+     <width>311</width>
+     <height>341</height>
     </rect>
    </property>
   </widget>
-  <zorder>splitter</zorder>
+  <widget class="QPushButton" name="uploadImage">
+   <property name="geometry">
+    <rect>
+     <x>700</x>
+     <y>9</y>
+     <width>310</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Cambiar Imagen de fondo</string>
+   </property>
+  </widget>
+  <zorder>tableViewExcel</zorder>
+  <zorder>uploadImage</zorder>
   <zorder>imageLabel</zorder>
-  <zorder>buttonBox</zorder>
   <zorder>labelName</zorder>
-  <zorder>exportPDF</zorder>
+  <zorder>exportMultiPDF</zorder>
   <zorder>subirExcelButton</zorder>
+  <zorder>subirExcelButton_2</zorder>
+  <zorder>exportPDF</zorder>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>accepted()</signal>
-   <receiver>Dialog</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>157</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>rejected()</signal>
-   <receiver>Dialog</receiver>
-   <slot>reject()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>286</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

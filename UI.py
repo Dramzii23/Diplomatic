@@ -1,18 +1,30 @@
 import fitz  
 # PyMuPDF
-from PyQt5.QtGui import QPixmap, QFont, QPainter, QPdfWriter, QColor, QPen, QImage
-from PyQt5.QtWidgets import QApplication, QDialog, QSplashScreen, QFileDialog, QPushButton, QMessageBox, QFontComboBox, QDial, QLabel
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from PyQt5.QtGui import QPixmap, QFont, QPainter, QPdfWriter, QColor, QPen, QImage, QTransform
+from PyQt5.QtWidgets import QApplication, QDialog, QSplashScreen, QFileDialog, QPushButton, QMessageBox, QFontComboBox, QDial, QLabel, QTableView
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt, QTimer, QUrl, QSizeF, QMarginsF
 from PyQt5.QtGui import QFontMetrics, QDesktopServices, QStandardItemModel, QStandardItem
 from PyQt5 import QtWidgets, uic
+from PyQt5.QtGui import QPainter, QImage
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QGraphicsScene
+from PyQt5.QtGui import QPixmap
+
+from openpyxl import load_workbook
+# from PyQt5.QtPrintSupport import QPdfWriter
+
 import pandas as pd
 
 
 
 # import pyglet
-import sys
-import os
+import os, sys, datetime
+# import os
 
 # https://stackoverflow.com/questions/31836104/pyinstaller-and-onefile-how-to-include-an-image-in-the-exe-file
 def resource_path(relative_path):
@@ -31,9 +43,62 @@ class MainWindow(QDialog):
         super(MainWindow, self).__init__()
 
         # Load the user interface from the "mainwindow.ui" file
-        loadUi(resource_path("ui_files\\mainwindow.ui"), self)
-        self.image_file = resource_path('defaultImage.png')
+        loadUi(resource_path("ui_files\\mainwindow2.ui"), self)
+        
+                
+        # Set image for imageLabel
+        self.image_file = resource_path('img\\defaultImage-white.png')
         self.imageLabel.setPixmap(QPixmap(self.image_file))
+        
+        # Set image for imageLabelFBStory
+        self.image_file_fbstory = resource_path('img\\BGFBStory.png')
+        self.imageLabelFBStory.setPixmap(QPixmap(self.image_file_fbstory))
+
+        # Set image for imageLabelFBStoryAward
+        self.image_file_award = resource_path('img\\defaultImage-white.png')
+        pixmap_award = QPixmap(self.image_file_award)
+        transform = QTransform().rotate(-15)  # Rotate 90 degrees
+        
+        self.rotated_pixmap_award = pixmap_award.transformed(transform)
+        self.imageLabelFBStoryAward.setPixmap(QPixmap(self.rotated_pixmap_award))
+        
+        # Create a shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(10)
+        shadow.setXOffset(10)
+        shadow.setYOffset(10)
+        shadow.setColor(QColor("grey"))
+        
+        self.imageLabelFBStoryAward.setStyleSheet("""
+            border: none;
+            box-shadow: 10px 10px 5px grey;
+            
+        """)
+        
+        # Set image for imageLabelFBStoryProfile
+        self.image_file_profile = resource_path('img\\profile_imgs\\ (1).jpg')
+        self.imageLabelFBStoryProfile.setPixmap(QPixmap(self.image_file_profile))
+        transform = QTransform().rotate(8.5)
+        self.imageLabelFBStoryProfile.setPixmap(QPixmap(self.image_file_profile).transformed(transform))
+        # Add shadow and remove border for imageLabelFBStoryProfile
+        self.imageLabelFBStoryProfile.setStyleSheet("""
+            border: none;
+            box-shadow: 10px 10px 5px grey;
+           
+        """)
+        
+        # Set image for imageLabelFBStoryWhite
+        self.image_file_bg = resource_path('img\\profileImage-shadow-grey.png')
+        self.imageLabelFBStoryWhite.setPixmap(QPixmap(self.image_file_bg))
+        transform = QTransform().rotate(8.5)
+        self.imageLabelFBStoryWhite.setPixmap(QPixmap(self.image_file_bg).transformed(transform))
+        
+        self.imageLabelFBStoryWhite.setStyleSheet("""
+            border: none;
+            box-shadow: 10px 10px 5px grey;
+           
+        """)
+        
 
         # Connect the currentFontChanged signal of the fontComboBox to the change_font method
         # This means that when the current font of the fontComboBox changes, the change_font method will be called
@@ -52,25 +117,72 @@ class MainWindow(QDialog):
         
         self.exportPDF.clicked.connect(self.export_pdf)
         
+        self.exportMultiPDF.clicked.connect(self.export_multi_pdf)
+        
         
         # Assuming subirExcelButton and tableViewExcel are members of self
-        self.subirExcelButton.clicked.connect(self.handle_subirExcelButton_clicked)
+        self.subirExcelButton.clicked.connect(self.handle_subirExcelButton_clicked_OPNPYXL)
         
-    
-        # Connect the clicked signal of the previewPDF QPushButton to the preview_pdf method
-        # This means that when the previewPDF button is clicked, the preview_pdf method will be called
-        # self.previewPDF.clicked.connect(self.preview_pdf)
-        # self.preview_pdf.clicked.connect(self.preview_pdf)
-        # self.previewButton.clicked.connect(self.preview_pdf)
+        self.tableViewExcel.clicked.connect(self.handle_tableview_clicked)
+    # END OF __init__ METHOD        
+# TEST OPENPYXL     
 
-        # # Create a new QPushButton named 'Preview PDF'
-        # self.previewPDF = QPushButton('Preview PDF ORC', self)
-        # # Connect the clicked signal of the new previewPDF QPushButton to the preview_pdf method
-        # # This means that when the new previewPDF button is clicked, the preview_pdf method will be called
-        # self.previewPDF.clicked.connect(self.preview_pdf)
-        
-        
-    # END OF __init__ METHOD
+
+    def handle_subirExcelButton_clicked_OPNPYXL(self):
+        file = self._open_excel_file()
+        if file:
+            df, images = self._read_excel_file_with_images(file)
+            self._populate_table_view(df)
+            self._create_tmp_images(images)
+
+    def _open_excel_file(self):
+        file, _ = QFileDialog.getOpenFileName(self, 'Open Excel File', '', 'Excel Files (*.xlsx)')
+        return file
+
+    def _read_excel_file_with_images(self, file):
+        wb = load_workbook(filename=file)
+        ws = wb.active
+
+        data = []
+        images = []
+
+        for row in ws.iter_rows():
+            row_data = []
+            for cell in row:
+                if cell.hyperlink:
+                    image = self._read_image(cell.hyperlink.target)
+                    images.append(image)
+                    row_data.append(image)
+                else:
+                    row_data.append(cell.value)
+            data.append(row_data)
+
+        df = pd.DataFrame(data)
+        return df, images
+
+    def _read_image(self, image_path):
+        # Implement this function to read an image from a file and return it in a format that you can use
+        pass
+
+    def _populate_table_view(self, df):
+        model = QStandardItemModel(df.shape[0], df.shape[1])
+        for row in df.iterrows():
+            for col, value in enumerate(row[1]):
+                item = QStandardItem(str(value))
+                model.setItem(row[0], col, item)
+        self.tableViewExcel.setModel(model)
+
+    def _create_tmp_images(self, images):
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        os.makedirs(f"reconocimientoTMP/{current_time}", exist_ok=True)
+        for i, line in enumerate(images):
+            self.labelName.setText(str(line))
+            # self.createTMPimages(i, line, current_time)
+            try:
+                self.createTMPimages(i, line, current_time)
+            except Exception as e:
+                print(f"Error: {e}")
+# END TESTS OPENPYXL
     def handle_subirExcelButton_clicked(self):
             # QMessageBox.information(self, "Title", "Hello 1") 
             file, _ = QFileDialog.getOpenFileName(self, 'Open Excel File', '', 'Excel Files (*.xlsx)')
@@ -92,17 +204,58 @@ class MainWindow(QDialog):
                 # Join the list into a single string with newline characters between each item
                 first_column_str = '\n'.join(str(item) for item in first_column)
                 
-                QMessageBox.information(self, "Title", first_column_str) 
-                # Set the text of labelName to the string
-                # self.labelName.setText(first_column_str)
-                # Call the export_pdf function and set the text of labelName for each line in first_column_str
-                # for i, line in enumerate(first_column_str.split('\n')):
-                #     self.export_pdf(line, f"output{i}.pdf")
-                #     self.labelName.setText(line)
+               
                 for i, line in enumerate(first_column_str.split('\n')):
                     
                     self.labelName.setText(line)
-                    self.export_pdf(str(i) + " " + line)
+                    # self.export_pdf(str(i) + " " + line)
+                
+               # Create a new directory with the current date and time
+                current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                os.makedirs(f"reconocimientoTMP/{current_time}", exist_ok=True)
+
+                for i, line in enumerate(first_column_str.split('\n')):
+                    self.labelName.setText(line)
+                    self.createTMPimages(i, line, current_time)  # Pass the row number and content to createTMPimages
+                    
+    def createTMPimages(self, row_number, row_content, current_time):
+        print("Creating TMP images")
+        pixmap = self.imageLabel.grab()
+
+        # Create a QPainter object
+        painter = QPainter(pixmap)
+
+        # Set the color and font of the text
+        painter.setPen(QColor(255, 255, 255))  # White color
+        painter.setFont(QFont('Arial', 20))  # Arial font, size 20
+
+        # Draw the label name onto the pixmap at position (50, 50)
+        painter.drawText(50, 50, self.labelName.text())
+
+        # End the QPainter object
+        painter.end()
+
+        # Convert the pixmap to an image
+        image = pixmap.toImage()
+
+        # Replace any characters in row_content that are not valid in filenames
+        valid_filename = "".join(c for c in row_content if c.isalnum() or c in (' ', '.', '_')).rstrip()
+
+        # Save the image to a file in the new directory, named after the row content
+        image.save(f"reconocimientoTMP/{current_time}/{valid_filename}_{row_number}.png")
+        
+        
+    def handle_tableview_clicked(self, index):
+        # Check if the selected cell is in the first column
+        if index.column() == 0:
+            # Get the model from the QTableView
+            model = self.tableViewExcel.model()
+
+            # Get the text from the selected cell
+            cell_text = model.data(index, Qt.DisplayRole)
+
+            # Set the text of the QLabel
+            self.labelName.setText(str(cell_text))
                     
     def upload_image(self):
         # Open a QFileDialog to select an image file
@@ -148,106 +301,141 @@ class MainWindow(QDialog):
 
         # Set the font of the labelName QLabel
         self.labelName.setFont(font)
+        
+        
+    def export_multi_pdf(self):
+        # # Get the model from the tableViewExcel
+        # model = self.tableViewExcel.model()
 
-    def export_pdf(self, line_content):
-        
-        
-        export_path = resource_path("PDF\\For print\\")
-        
-        # Check if the directory exists
-        folder_path = os.path.dirname(export_path)
-        
-        os.makedirs(folder_path, exist_ok=True)
-        if not os.path.exists(os.path.dirname(export_path)):
-            # Create the directory
-            os.makedirs(os.path.dirname(export_path))
-        
-        # Create the filename from the line_content
-        filename = f"{line_content}.pdf"
-        
-        # Combine the default directory and the filename to create the full file path
+        # # Check if model is None
+        # if model is None:
+        #     print("No model in tableViewExcel.")
+        #     return
+
+        # # Get the number of rows in the model
+        # num_rows = model.rowCount()
+
+        # # Iterate over each row
+        # for row in range(num_rows):
+        #     # Get the index of the cell in the first column of the current row
+        #     index = model.index(row, 0)
+
+        #     # Get the text from the cell
+        #     cell_text = model.data(index)
+
+        #     # Export a PDF for the cell text
+        #     self.export_pdf(str(cell_text))
+            # Get the model from the tableViewExcel
+        # Get the model from the tableViewExcel
+        # Get the model from the tableViewExcel
+        model = self.tableViewExcel.model()
+
+        # Check if model is None
+        if model is None:
+            print("No model in tableViewExcel.")
+            QMessageBox.information(self, "No hay excel", "Es necesario subir un archivo Excel") 
+            return
+
+        # Get the number of rows in the model
+        num_rows = model.rowCount()
+
+        # Open a dialog for the user to select a directory
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Directory")
+
+        # If the user didn't select a directory, return
+        if not folder_path:
+            return
+
+        # Iterate over each row
+        for row in range(num_rows):
+            index = model.index(row, 0)
+            cell_text = model.data(index)
+            filename = f"{cell_text}.pdf"
+            self.export_pdf(str(cell_text), folder_path, filename)
+            
+    def export_pdf(self, line_content, folder_path=None, filename=None):
+        # If folder_path is not provided, set it to a default value
+        if folder_path is None:
+            folder_path = resource_path("PDF\\For print\\")
+
+        # If filename is not provided, open a dialog for the user to select a filename
+        if filename is None:
+            filename, _ = QFileDialog.getSaveFileName(self, "Save PDF", folder_path, "PDF Files (*.pdf)")
+
+        # If the user didn't select a filename, return
+        if not filename:
+            return
+
+        # Join the folder path and filename to create the full file path
         pdf_file = os.path.join(folder_path, filename)
 
-        # Check if the file path is valid
+        # Ensure directory exists
+        os.makedirs(folder_path, exist_ok=True)
+        # # Define paths and filenames
+        # export_path = resource_path("PDF\\For print\\")
+        # folder_path = os.path.dirname(export_path)
+        # filename = f"{line_content}.pdf"
+        # pdf_file = os.path.join(folder_path, filename)
+        
+        # # Create the filename
+        # filename = f"{line_content}.pdf"
+
+        # Join the folder path and filename to create the full file path
+        pdf_file = os.path.join(folder_path, filename)
+
+        # Ensure directory exists
+        os.makedirs(folder_path, exist_ok=True)
+
+        # Ensure directory exists
+        os.makedirs(folder_path, exist_ok=True)
+
+        # Validate file path
         if not os.path.isdir(os.path.dirname(pdf_file)):
             print(f"Invalid file path: {pdf_file}")
             return
-            
-        # Open a QFileDialog to select the PDF file
-        # pdf_file, _ = QFileDialog.getSaveFileName(self, "Export PDF",folder_path, "PDF Files (*.pdf)")
-           
-            
-        if pdf_file:
-            # Check if the file path is valid
-            if not os.path.isdir(os.path.dirname(pdf_file)):
-                print(f"Invalid file path: {pdf_file}")
-                return
 
-        # Create a QPdfWriter
+        # Setup PDF writer
         pdf_writer = QPdfWriter(pdf_file)
-        # Set the page size to 11 x 8.5 inches (1 inch = 25.4 mm)
         pdf_writer.setPageSizeMM(QSizeF(11 * 25.4, 8.5 * 25.4))
-        # Remove the margins
         pdf_writer.setPageMargins(QMarginsF(0, 0, 0, 0))
-        # Set the resolution to 300 DPI
         pdf_writer.setResolution(300)
 
-        # Create a QPainter object with the QPdfWriter object as the paint device
+        # Setup painter
         painter = QPainter(pdf_writer)
-
-        # Check if QPainter is active
         if not painter.isActive():
-            
-            # self.image_file = resource_path("defaultImage.png")
-            self.image_file = bgImage
-            
-            pixmap = QPixmap(self.image_file)
-            
-            
-            if pixmap:
-                painter.drawPixmap(0, 0, pixmap)
-            else:
-                print("No pixmap in imageLabel.")
-                return
-
-            print("Failed to initialize QPainter.")
             QMessageBox.information(self, "Information", "No puedo sobreescribir un PDF abierto")
             return
 
+        # Draw image
         pixmap = QPixmap(self.image_file)
         if pixmap:
+            pixmapWidth, pixmapHeight = pixmap.width(), pixmap.height()
+            painter.setViewport(0, 0, pixmapWidth, pixmapHeight)
+            painter.setWindow(0, 0, pixmapWidth, pixmapHeight)
             painter.drawPixmap(0, 0, pixmap)
         else:
             print("No pixmap in imageLabel.")
             return
 
-        pixmapWidth, pixmapHeight = pixmap.width(), pixmap.height()
-        painter.setViewport(0, 0, pixmapWidth, pixmapHeight)
-        painter.setWindow(0, 0, pixmapWidth, pixmapHeight)
-        painter.drawPixmap(0, 0, pixmap)
-
+        # Draw text
         font = self.labelName.font()
         font.setPointSize(int(self.labelName.font().pointSize() * 1.5))
         self.labelName.setFont(font)
         font.setPointSize(int(self.labelName.font().pointSize()))
         painter.setFont(font)
-        painter.setPen(QColor(Qt.white))
+        painter.setPen(QColor(Qt.black))
+        
 
         font_metrics = QFontMetrics(self.labelName.font())
         text_width = int(font_metrics.horizontalAdvance(self.labelName.text()) * 1.55)
-        text_height = int(font_metrics.height())
-
         page_center_x = pdf_writer.width() // 2
         page_center_y = int(pdf_writer.height() * .65)
 
-        text_x = page_center_x - text_width // 2
-        text_y = page_center_y - text_height // 2
-
         painter.drawText(page_center_x - text_width, page_center_y, self.labelName.text())
 
+        # Clean up
         painter.end()
         self.preview_pdf(pdf_file)
-
         font.setPointSize(int(self.labelName.font().pointSize() / 1.5))
         self.labelName.setFont(font)
         
