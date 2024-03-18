@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtGui import QPixmap
+from pdf2image import convert_from_path
 
 from openpyxl import load_workbook
 # from PyQt5.QtPrintSupport import QPdfWriter
@@ -121,7 +122,7 @@ class MainWindow(QDialog):
         
         
         # Assuming subirExcelButton and tableViewExcel are members of self
-        self.subirExcelButton.clicked.connect(self.handle_subirExcelButton_clicked_OPNPYXL)
+        self.subirExcelButton.clicked.connect(self.handle_subirExcelButton_clicked)
         
         self.tableViewExcel.clicked.connect(self.handle_tableview_clicked)
     # END OF __init__ METHOD        
@@ -218,6 +219,17 @@ class MainWindow(QDialog):
                     self.labelName.setText(line)
                     self.createTMPimages(i, line, current_time)  # Pass the row number and content to createTMPimages
                     
+    
+
+
+    def convert_pdf_to_image(self, pdf_path, output_path):
+        # Convert the PDF to a list of images
+        images = convert_from_path(pdf_path)
+
+        # Save the first page of the PDF as a PNG
+        if images:
+            images[0].save(output_path, 'PNG')
+    
     def createTMPimages(self, row_number, row_content, current_time):
         print("Creating TMP images")
         pixmap = self.imageLabel.grab()
@@ -235,6 +247,10 @@ class MainWindow(QDialog):
         # End the QPainter object
         painter.end()
 
+
+
+
+
         # Convert the pixmap to an image
         image = pixmap.toImage()
 
@@ -244,6 +260,24 @@ class MainWindow(QDialog):
         # Save the image to a file in the new directory, named after the row content
         image.save(f"reconocimientoTMP/{current_time}/{valid_filename}_{row_number}.png")
         
+# ///////////////  Convert the pixmap to an image
+        folder_path=f"reconocimientoTMP/{current_time}"
+        filename=f"{valid_filename}_{row_number}.pdf"
+
+        self.export_pdf(None, folder_path, filename, preview=True)
+
+        
+        PDFtoExport = folder_path + "/" + filename
+        PNGfromPDF = folder_path + "/" + f"{valid_filename}_{row_number}.png"
+        print(f"PDFtoExport: {PDFtoExport}")
+        print(f"PNGfromPDF: {PNGfromPDF}")
+        print(str(PDFtoExport))
+        print(str(PNGfromPDF))
+        
+        
+        # Corrected function call
+        self.convert_pdf_to_image(str(PDFtoExport), str(PNGfromPDF))
+#///////////// Convert the pixmap to an image
         
     def handle_tableview_clicked(self, index):
         # Check if the selected cell is in the first column
@@ -261,14 +295,9 @@ class MainWindow(QDialog):
         # Open a QFileDialog to select an image file
         # The getOpenFileName method returns a tuple where the first element is the selected file path
         # The second element is the selected filter, which we don't need, hence the underscore
-        
-        
-        
-        # self.image_file, _ = QFileDialog.getOpenFileName(self, "Open Image", self.image_file, "Image Files (*.png *.jpg *.bmp)")
         bgImage, _ = QFileDialog.getOpenFileName(self, "Open Image", self.image_file, "Image Files (*.png *.jpg *.bmp)")
         if bgImage:
             self.image_file = bgImage
-
 
         # If a file was selected (i.e., if self.image_file is not an empty string)
         if self.image_file:
@@ -304,30 +333,7 @@ class MainWindow(QDialog):
         
         
     def export_multi_pdf(self):
-        # # Get the model from the tableViewExcel
-        # model = self.tableViewExcel.model()
-
-        # # Check if model is None
-        # if model is None:
-        #     print("No model in tableViewExcel.")
-        #     return
-
-        # # Get the number of rows in the model
-        # num_rows = model.rowCount()
-
-        # # Iterate over each row
-        # for row in range(num_rows):
-        #     # Get the index of the cell in the first column of the current row
-        #     index = model.index(row, 0)
-
-        #     # Get the text from the cell
-        #     cell_text = model.data(index)
-
-        #     # Export a PDF for the cell text
-        #     self.export_pdf(str(cell_text))
-            # Get the model from the tableViewExcel
-        # Get the model from the tableViewExcel
-        # Get the model from the tableViewExcel
+    
         model = self.tableViewExcel.model()
 
         # Check if model is None
@@ -350,63 +356,49 @@ class MainWindow(QDialog):
         for row in range(num_rows):
             index = model.index(row, 0)
             cell_text = model.data(index)
+            # Set the text of the QLabel
+            self.labelName.setText(str(cell_text))
             filename = f"{cell_text}.pdf"
-            self.export_pdf(str(cell_text), folder_path, filename)
+            self.export_pdf(str(cell_text), folder_path, filename, preview=True)
+            print(f"Exported {filename} to {folder_path}")
             
-    def export_pdf(self, line_content, folder_path=None, filename=None):
-        # If folder_path is not provided, set it to a default value
+    def export_pdf(self, line_content, folder_path=None, filename=None, preview=False):
+        # 1. If folder_path is not provided, set it to a default value
         if folder_path is None:
             folder_path = resource_path("PDF\\For print\\")
 
-        # If filename is not provided, open a dialog for the user to select a filename
+        # 2. If filename is not provided, open a dialog for the user to select a filename
         if filename is None:
             filename, _ = QFileDialog.getSaveFileName(self, "Save PDF", folder_path, "PDF Files (*.pdf)")
 
-        # If the user didn't select a filename, return
+        # 3. If the user didn't select a filename, return
         if not filename:
             return
 
-        # Join the folder path and filename to create the full file path
+        # 4. Join the folder path and filename to create the full file path
         pdf_file = os.path.join(folder_path, filename)
 
-        # Ensure directory exists
-        os.makedirs(folder_path, exist_ok=True)
-        # # Define paths and filenames
-        # export_path = resource_path("PDF\\For print\\")
-        # folder_path = os.path.dirname(export_path)
-        # filename = f"{line_content}.pdf"
-        # pdf_file = os.path.join(folder_path, filename)
-        
-        # # Create the filename
-        # filename = f"{line_content}.pdf"
-
-        # Join the folder path and filename to create the full file path
-        pdf_file = os.path.join(folder_path, filename)
-
-        # Ensure directory exists
+        # 5. Ensure directory exists
         os.makedirs(folder_path, exist_ok=True)
 
-        # Ensure directory exists
-        os.makedirs(folder_path, exist_ok=True)
-
-        # Validate file path
+        # 6. Validate file path
         if not os.path.isdir(os.path.dirname(pdf_file)):
             print(f"Invalid file path: {pdf_file}")
             return
 
-        # Setup PDF writer
+        # 7. Setup PDF writer
         pdf_writer = QPdfWriter(pdf_file)
         pdf_writer.setPageSizeMM(QSizeF(11 * 25.4, 8.5 * 25.4))
         pdf_writer.setPageMargins(QMarginsF(0, 0, 0, 0))
         pdf_writer.setResolution(300)
 
-        # Setup painter
+        # 8. Setup painter
         painter = QPainter(pdf_writer)
         if not painter.isActive():
             QMessageBox.information(self, "Information", "No puedo sobreescribir un PDF abierto")
             return
 
-        # Draw image
+        # 9. Draw image
         pixmap = QPixmap(self.image_file)
         if pixmap:
             pixmapWidth, pixmapHeight = pixmap.width(), pixmap.height()
@@ -417,14 +409,13 @@ class MainWindow(QDialog):
             print("No pixmap in imageLabel.")
             return
 
-        # Draw text
+        # 10. Draw text
         font = self.labelName.font()
         font.setPointSize(int(self.labelName.font().pointSize() * 1.5))
         self.labelName.setFont(font)
         font.setPointSize(int(self.labelName.font().pointSize()))
         painter.setFont(font)
         painter.setPen(QColor(Qt.black))
-        
 
         font_metrics = QFontMetrics(self.labelName.font())
         text_width = int(font_metrics.horizontalAdvance(self.labelName.text()) * 1.55)
@@ -433,9 +424,13 @@ class MainWindow(QDialog):
 
         painter.drawText(page_center_x - text_width, page_center_y, self.labelName.text())
 
-        # Clean up
+        # 11. Clean up
         painter.end()
-        self.preview_pdf(pdf_file)
+
+        # Only preview the PDF if the preview parameter is True
+        if preview:
+            self.preview_pdf(pdf_file)
+
         font.setPointSize(int(self.labelName.font().pointSize() / 1.5))
         self.labelName.setFont(font)
         
