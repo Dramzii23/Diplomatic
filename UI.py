@@ -1,5 +1,4 @@
 import fitz  
-# PyMuPDF
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from PyQt5.QtGui import QPixmap, QFont, QPainter, QPdfWriter, QColor, QPen, QImage, QTransform
@@ -15,16 +14,18 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtGui import QPixmap
 from pdf2image import convert_from_path
-
 from openpyxl import load_workbook
+import pandas as pd
+import os, sys, datetime, shutil
+
+# PyMuPDF
+
 # from PyQt5.QtPrintSupport import QPdfWriter
 
-import pandas as pd
 
 
 
 # import pyglet
-import os, sys, datetime
 # import os
 
 # https://stackoverflow.com/questions/31836104/pyinstaller-and-onefile-how-to-include-an-image-in-the-exe-file
@@ -77,14 +78,14 @@ class MainWindow(QDialog):
         """)
         
         # Set image for imageLabelFBStoryProfile
-        self.image_file_profile = resource_path('img\\profile_imgs\\ (1).jpg')
+        self.image_file_profile = resource_path('img\\profile_imgs\\Pablo Daniel Gutierrez (5).jpg')
         self.imageLabelFBStoryProfile.setPixmap(QPixmap(self.image_file_profile))
         transform = QTransform().rotate(8.5)
         self.imageLabelFBStoryProfile.setPixmap(QPixmap(self.image_file_profile).transformed(transform))
         # Add shadow and remove border for imageLabelFBStoryProfile
         self.imageLabelFBStoryProfile.setStyleSheet("""
             border: none;
-            box-shadow: 10px 10px 5px grey;
+            
            
         """)
         
@@ -96,39 +97,67 @@ class MainWindow(QDialog):
         
         self.imageLabelFBStoryWhite.setStyleSheet("""
             border: none;
-            box-shadow: 10px 10px 5px grey;
-           
+                     
         """)
-        
-
-        # Connect the currentFontChanged signal of the fontComboBox to the change_font method
-        # This means that when the current font of the fontComboBox changes, the change_font method will be called
-        # self.fontComboBox.currentFontChanged.connect(self.change_font)
-
-        # Connect the valueChanged signal of the dialFontSize to the change_font_size method
-        # This means that when the value of the dialFontSize changes, the change_font_size method will be called
-       ######### # self.dialFontSize.valueChanged.connect(self.change_font_size)
-
+ 
         # Connect the clicked signal of the uploadImage QPushButton to the upload_image method
         # This means that when the uploadImage button is clicked, the upload_image method will be called
         self.uploadImage.clicked.connect(self.upload_image)
 
         # Connect the clicked signal of the exportPDF QPushButton to the export_pdf method
         # This means that when the exportPDF button is clicked, the export_pdf method will be called
-        
         self.exportPDF.clicked.connect(self.export_pdf)
         
         self.exportMultiPDF.clicked.connect(self.export_multi_pdf)
-        
         
         # Assuming subirExcelButton and tableViewExcel are members of self
         self.subirExcelButton.clicked.connect(self.handle_subirExcelButton_clicked)
         
         self.tableViewExcel.clicked.connect(self.handle_tableview_clicked)
+        
+        self.exportSubirFotoBoton.clicked.connect(self.upload_profile_image)
     # END OF __init__ METHOD        
 # TEST OPENPYXL     
 
+    def upload_profile_image(self):
+        # Open a QFileDialog to select an image file
+        # The getOpenFileName method returns a tuple where the first element is the selected file path
+        # The second element is the selected filter, which we don't need, hence the underscore
+        bgImage, _ = QFileDialog.getOpenFileName(self, "Open Image", self.image_file_profile, "Image Files (*.png *.jpg *.bmp)")
+        if bgImage:
+            self.image_file_profile = bgImage
 
+        # If a file was selected (i.e., if self.image_file is not an empty string)
+        if self.image_file_profile:
+            # Create a QPixmap from the image file
+            pixmap = QPixmap(self.image_file_profile)
+            # Scale the QPixmap to fit the size of the imageLabel, while keeping the aspect ratio
+            pixmap = pixmap.scaled(self.imageLabelFBStoryProfile.size(), Qt.KeepAspectRatio)
+            # Set the QPixmap as the pixmap of the imageLabel
+            self.imageLabelFBStoryProfile.setPixmap(pixmap)
+            transform = QTransform().rotate(8.5)
+            self.imageLabelFBStoryProfile.setPixmap(QPixmap(self.image_file_profile).transformed(transform))
+            # Add shadow and remove border for imageLabelFBStoryProfile
+            self.imageLabelFBStoryProfile.setStyleSheet("""
+                border: none;
+                
+            """)
+             # Define the destination folder and new filename
+            destination_folder = "img/profile_imgs/"
+            new_filename = os.path.basename(self.image_file_profile)  # get the original filename
+
+        # Create the full destination path
+            destination_path = os.path.join(destination_folder, new_filename)
+
+            # If the source and destination filenames are the same, add a suffix to the filename
+            suffix = 0
+            while os.path.exists(destination_path) and os.path.basename(self.image_file_profile) == new_filename:
+                suffix += 1
+                new_filename = f"{os.path.splitext(os.path.basename(self.image_file_profile))[0]}_{suffix}{os.path.splitext(self.image_file_profile)[1]}"  # append suffix to original filename
+                destination_path = os.path.join(destination_folder, new_filename)
+
+            # Copy the uploaded file to the destination path
+            shutil.copy(self.image_file_profile, destination_path)
     def handle_subirExcelButton_clicked_OPNPYXL(self):
         file = self._open_excel_file()
         if file:
@@ -174,19 +203,20 @@ class MainWindow(QDialog):
         self.tableViewExcel.setModel(model)
 
     def _create_tmp_images(self, images):
-        current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        os.makedirs(f"reconocimientoTMP/{current_time}", exist_ok=True)
+        # imagesTMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        imagesTMP = "imagesTMP"
+        os.makedirs(f"TMP/{imagesTMP}", exist_ok=True)
         for i, line in enumerate(images):
             self.labelName.setText(str(line))
-            # self.createTMPimages(i, line, current_time)
+            # self.createTMPimages(i, line, imagesTMP)
             try:
-                self.createTMPimages(i, line, current_time)
+                self.createTMPimages(i, line, imagesTMP)
             except Exception as e:
                 print(f"Error: {e}")
 # END TESTS OPENPYXL
     def handle_subirExcelButton_clicked(self):
             # QMessageBox.information(self, "Title", "Hello 1") 
-            file, _ = QFileDialog.getOpenFileName(self, 'Open Excel File', '', 'Excel Files (*.xlsx)')
+            file, _ = QFileDialog.getOpenFileName(self, 'Open Excel File', 'excel/', 'Excel Files (*.xlsx)')
             # QMessageBox.information(self, "Title", "Hello 2") 
             if file:
                 df = pd.read_excel(file)
@@ -212,25 +242,28 @@ class MainWindow(QDialog):
                     # self.export_pdf(str(i) + " " + line)
                 
                # Create a new directory with the current date and time
-                current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                os.makedirs(f"reconocimientoTMP/{current_time}", exist_ok=True)
+                # imagesTMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                imagesTMP = "imagesTMP"
+                
+                os.makedirs(f"TMP/{imagesTMP}", exist_ok=True)
 
                 for i, line in enumerate(first_column_str.split('\n')):
                     self.labelName.setText(line)
-                    self.createTMPimages(i, line, current_time)  # Pass the row number and content to createTMPimages
+                    self.createTMPimages(i, line, imagesTMP)  # Pass the row number and content to createTMPimages
                     
     
 
 
     def convert_pdf_to_image(self, pdf_path, output_path):
         # Convert the PDF to a list of images
-        images = convert_from_path(pdf_path)
+        images = convert_from_path(pdf_path, poppler_path=r"Poppler-V-24-02-00/Library/bin")
+        # self.pdf2image.convert_from_path('path/to/pdf',poppler_path=r"path\to\poppler\bin")
 
         # Save the first page of the PDF as a PNG
         if images:
             images[0].save(output_path, 'PNG')
     
-    def createTMPimages(self, row_number, row_content, current_time):
+    def createTMPimages(self, row_number, row_content, imagesTMP):
         print("Creating TMP images")
         pixmap = self.imageLabel.grab()
 
@@ -258,26 +291,27 @@ class MainWindow(QDialog):
         valid_filename = "".join(c for c in row_content if c.isalnum() or c in (' ', '.', '_')).rstrip()
 
         # Save the image to a file in the new directory, named after the row content
-        image.save(f"reconocimientoTMP/{current_time}/{valid_filename}_{row_number}.png")
+        image.save(f"TMP/{imagesTMP}/{valid_filename}_{row_number}.png")
         
 # ///////////////  Convert the pixmap to an image
-        folder_path=f"reconocimientoTMP/{current_time}"
+        folder_path=f"TMP/{imagesTMP}"
         filename=f"{valid_filename}_{row_number}.pdf"
 
-        self.export_pdf(None, folder_path, filename, preview=True)
+        self.export_pdf(None, folder_path, filename, preview=False)
 
         
         PDFtoExport = folder_path + "/" + filename
         PNGfromPDF = folder_path + "/" + f"{valid_filename}_{row_number}.png"
-        print(f"PDFtoExport: {PDFtoExport}")
-        print(f"PNGfromPDF: {PNGfromPDF}")
-        print(str(PDFtoExport))
-        print(str(PNGfromPDF))
-        
         
         # Corrected function call
         self.convert_pdf_to_image(str(PDFtoExport), str(PNGfromPDF))
+        print("TMP images created")
+        # Delete the PDF file after the PNG is created
+        os.remove(PDFtoExport)
+        
+        
 #///////////// Convert the pixmap to an image
+        
         
     def handle_tableview_clicked(self, index):
         # Check if the selected cell is in the first column
@@ -287,9 +321,35 @@ class MainWindow(QDialog):
 
             # Get the text from the selected cell
             cell_text = model.data(index, Qt.DisplayRole)
+            
+             # Get the row number
+            row_number = index.row()           
 
             # Set the text of the QLabel
             self.labelName.setText(str(cell_text))
+             # Set the text of the QLabel2
+            self.labelName2.setText(str(cell_text))
+            
+            self.imageLabelFBStoryProfile2.setPixmap(QPixmap(self.image_file_profile))
+        
+        
+            print(f"cell_text: {cell_text}")
+            print(f"index: {row_number}")
+            
+            
+            # Set image for imageLabelFBStoryAward
+            self.image_file_award = resource_path(f'TMP\\imagesTMP\\{cell_text}_{row_number}.png')
+            pixmap_award = QPixmap(self.image_file_award)
+            transform = QTransform().rotate(-15)  # First rotate the pixmap
+            print(f"self.image_file_award: {self.image_file_award}")
+            
+            # You need to first rotate the pixmap and then set it to the label
+            self.rotated_pixmap_award = pixmap_award.transformed(transform)
+            self.imageLabelFBStoryAward.setPixmap(QPixmap(self.rotated_pixmap_award))
+            
+            
+            
+
                     
     def upload_image(self):
         # Open a QFileDialog to select an image file
@@ -346,7 +406,7 @@ class MainWindow(QDialog):
         num_rows = model.rowCount()
 
         # Open a dialog for the user to select a directory
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Directory")
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Directory", "PDF/For print")
 
         # If the user didn't select a directory, return
         if not folder_path:
@@ -362,7 +422,7 @@ class MainWindow(QDialog):
             self.export_pdf(str(cell_text), folder_path, filename, preview=True)
             print(f"Exported {filename} to {folder_path}")
             
-    def export_pdf(self, line_content, folder_path=None, filename=None, preview=False):
+    def export_pdf(self, line_content, folder_path=None, filename=None, preview=True):
         # 1. If folder_path is not provided, set it to a default value
         if folder_path is None:
             folder_path = resource_path("PDF\\For print\\")
